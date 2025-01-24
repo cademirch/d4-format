@@ -21,12 +21,8 @@ classifiers = [
 
 [tool.maturin]
 python-source = "python"
-module-name = "pyd4._pyd4"  # Points to Rust
-
+module-name = "pyd4._pyd4" # Points to Rust
 
 
 [dependency-groups]
-dev = [
-    "pytest>=8.3.4",
-    "maturin>=1,<2"
-]
+dev = ["pytest>=8.3.4", "maturin>=1,<2"]
