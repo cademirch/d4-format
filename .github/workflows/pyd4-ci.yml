@@ -20,47 +20,26 @@ permissions:
 
 jobs:
   linux:
-    runs-on: ${{ matrix.platform.runner }}
-    strategy:
-      matrix:
-        platform:
-          - runner: ubuntu-latest
-            target: x86_64
-            manylinux: auto
-          - runner: ubuntu-latest
-            target: x86
-            manylinux: auto
-          - runner: ubuntu-latest
-            target: aarch64
-            manylinux: "2_28"
-          - runner: ubuntu-latest
-            target: armv7
-            manylinux: auto
-          - runner: ubuntu-latest
-            target: s390x
-            manylinux: auto
-          - runner: ubuntu-latest
-            target: ppc64le
-            manylinux: auto
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter -m pyd4/Cargo.toml
+          target: x86_64
+          args: --release --out dist --find-interpreter -m ./pyd4/Cargo.toml
           sccache: 'true'
-          manylinux: ${{ matrix.platform.manylinux }}
+          manylinux: auto
       # - name: Upload wheels
       #   uses: actions/upload-artifact@v4
       #   with:
       #     name: wheels-linux-${{ matrix.platform.target }}
       #     path: dist
       - name: pytest
-        if: ${{ startsWith(matrix.platform.target, 'x86_64') }}
         shell: bash
         run: |
           set -e
@@ -69,21 +48,7 @@ jobs:
           pip install pyd4 --find-links dist --force-reinstall
           pip install pytest
           pytest
-      - name: pytest
-        if: ${{ !startsWith(matrix.platform.target, 'x86') && matrix.platform.target != 'ppc64' }}
-        uses: uraimo/run-on-arch-action@v2
-        with:
-          arch: ${{ matrix.platform.target }}
-          distro: ubuntu22.04
-          githubToken: ${{ github.token }}
-          install: |
-            apt-get update
-            apt-get install -y --no-install-recommends python3 python3-pip
-            pip3 install -U pip pytest
-          run: |
-            set -e
-            pip3 install pyd4 --find-links dist --force-reinstall
-            pytest
+      
 
   # musllinux:
   #   runs-on: ${{ matrix.platform.runner }}
