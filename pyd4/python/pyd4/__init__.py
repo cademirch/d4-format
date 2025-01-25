@@ -2,7 +2,13 @@
 The Python Binding for the D4 file format.
 """
 
-from .pyd4 import D4File as D4FileImpl, D4Iter, D4Builder as D4BuilderImpl, D4Writer as D4WriterImpl, D4Merger as D4MergerImpl
+from ._pyd4 import (
+    D4File as D4FileImpl,
+    D4Iter,
+    D4Builder as D4BuilderImpl,
+    D4Writer as D4WriterImpl,
+    D4Merger as D4MergerImpl,
+)
 
 import numpy
 import ctypes

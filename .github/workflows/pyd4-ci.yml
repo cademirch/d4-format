@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]
+        target: [x86_64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter -m pyd4/Cargo.toml
+          sccache: 'true'
+          manylinux: auto
+
+      # Optional: Upload built wheels as artifacts
+      # - name: Upload wheels
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: wheels-linux-${{ matrix.target }}
+      #     path: dist
+
+      - name: Install and Test
+        run: |
+          set -e
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install dist/*.whl
+          pip install pytest
+          pytest pyd4/tests/
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]
+        target: [x86_64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter -m pyd4/Cargo.toml
+          sccache: 'true'
+
+      - name: Install and Test
+        run: |
+          set -e
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install dist/*.whl
+          pip install pytest
+          pytest pyd4/tests/
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]
+        target: [x86_64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter -m pyd4/Cargo.toml
+          sccache: 'true'
+
+      - name: Install and Test
+        shell: bash
+        run: |
+          set -e
+          python3 -m venv .venv
+          source .venv/Scripts/activate
+          pip install dist/*.whl
+          pip install pytest
+          pytest pyd4/tests/
