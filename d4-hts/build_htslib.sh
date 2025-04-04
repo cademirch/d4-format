@@ -39,9 +39,9 @@ if [ "x${ZLIB_SRC}" != "x" ]
 then
 	tar xz ${ZLIB_SRC}
 else
-	curl -L 'http://github.com/madler/zlib/archive/refs/tags/v1.2.11.tar.gz' | tar xz
+	curl -L 'http://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz' | tar xz
 fi
-cd zlib-1.2.11
+cd zlib-1.3.1
 is_musl && CC=musl-gcc ./configure || ./configure
 make libz.a
 cp libz.a ..
