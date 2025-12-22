@@ -20,6 +20,7 @@ pub enum DecodeResult {
     Maybe(i32),
 }
 
+#[cfg(feature = "writer")]
 /// The trait that is used to write a primary table
 pub trait PrimaryTableWriter: Sized {
     /// The writer type for a parallel chunk
@@ -31,6 +32,7 @@ pub trait PrimaryTableWriter: Sized {
         -> Result<Vec<Self::Partition>>;
 }
 
+#[cfg(feature = "writer")]
 /// The trait that is used as one of the parallel partition split from the primary table writer
 pub trait PTablePartitionWriter: Send {
     /// The type describes how we encode
@@ -45,6 +47,7 @@ pub trait PTablePartitionWriter: Send {
     fn bit_width(&self) -> usize;
 }
 
+#[cfg(feature = "writer")]
 /// Any type used to encode a value in primary table
 pub trait Encoder {
     /// Encode a value at given location
@@ -106,10 +109,12 @@ pub trait Decoder {
     }
 }
 
+#[cfg(feature = "writer")]
 /// The writer for bit-array backed primary table
 pub type BitArrayWriter = bit_array::PrimaryTable<bit_array::Writer>;
 /// The reader for bit-array backed primary table
 pub type BitArrayReader = bit_array::PrimaryTable<bit_array::Reader>;
+#[cfg(feature = "writer")]
 /// The partition writer for bit-array backed primary table
 pub type BitArrayPartWriter = bit_array::PartialPrimaryTable<bit_array::Writer>;
 /// The partition reader for bit-array backed primary table
@@ -117,6 +122,7 @@ pub type BitArrayPartReader = bit_array::PartialPrimaryTable<bit_array::Reader>;
 
 /// The decoder for bit-array primary table
 pub type BitArrayDecoder = bit_array::PrimaryTableCodec<bit_array::Reader>;
+#[cfg(feature = "writer")]
 /// The encoder for bit-array primary table
 pub type BitArrayEncoder = bit_array::PrimaryTableCodec<bit_array::Writer>;
 

@@ -6,7 +6,9 @@ use std::io::Result;
 use std::sync::{Arc, Mutex};
 
 use super::DecodeResult;
-use crate::dict::{Dictionary, EncodeResult};
+use crate::dict::Dictionary;
+#[cfg(feature = "writer")]
+use crate::dict::EncodeResult;
 use crate::header::Header;
 
 pub trait PrimaryTableMode: Sized {
@@ -29,6 +31,7 @@ impl PrimaryTableMode for Reader {
     }
 }
 
+#[cfg(feature = "writer")]
 impl PrimaryTableMode for Writer {
     type HandleType = dyn AsMut<[u8]> + Send;
     fn get_mapping_address(this: &mut PrimaryTable<Self>) -> Result<*const u8> {
@@ -131,6 +134,7 @@ impl<M: PrimaryTableMode> PrimaryTable<M> {
         Ok(ret)
     }
 }
+#[cfg(feature = "writer")]
 impl PrimaryTable<Writer> {
     pub(crate) fn create(directory: &mut Directory<File>, header: &Header) -> Result<Self> {
         let size = header.primary_table_size();
@@ -314,6 +318,7 @@ impl PrimaryTableCodec<Reader> {
     }
 }
 
+#[cfg(feature = "writer")]
 impl PrimaryTableCodec<Writer> {
     #[inline(always)]
     pub fn encode(&mut self, offset: usize, value: i32) -> bool {
@@ -338,12 +343,14 @@ impl PrimaryTableCodec<Writer> {
         }
     }
 }
+#[cfg(feature = "writer")]
 impl Encoder for PrimaryTableCodec<Writer> {
     #[inline(always)]
     fn encode(&mut self, offset: usize, value: i32) -> bool {
         PrimaryTableCodec::<Writer>::encode(self, offset, value)
     }
 }
+#[cfg(feature = "writer")]
 impl PTablePartitionWriter for PartialPrimaryTable<Writer> {
     type EncoderType = PrimaryTableCodec<Writer>;
     fn make_encoder(&mut self) -> Self::EncoderType {
@@ -362,6 +369,7 @@ impl PTablePartitionWriter for PartialPrimaryTable<Writer> {
         self.dictionary.bit_width()
     }
 }
+#[cfg(feature = "writer")]
 impl PrimaryTableWriter for PrimaryTable<Writer> {
     type Partition = PartialPrimaryTable<Writer>;
     fn create(directory: &mut Directory<File>, header: &Header) -> Result<Self> {
@@ -456,7 +464,7 @@ impl PrimaryTableReader for PrimaryTable<Reader> {
         self.split_chunk(header, size_limit)
     }
 }
-#[cfg(test)]
+#[cfg(all(test, feature = "writer"))]
 mod test {
     use super::*;
     #[test]

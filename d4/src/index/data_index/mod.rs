@@ -2,17 +2,24 @@ mod data;
 
 use d4_framefile::{Blob, Directory};
 pub use data::{DataSummary, Sum};
+#[cfg(feature = "task")]
+pub use data::DataSummaryExt;
 
 use std::{
     collections::HashMap,
     fmt::Debug,
-    fs::File,
     io::{Read, Result, Seek},
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 
-use crate::{ssio::D4TrackReader as StreamD4Reader, Chrom, D4TrackReader};
+#[cfg(feature = "task")]
+use std::fs::File;
+
+use crate::ssio::D4TrackReader as StreamD4Reader;
+use crate::Chrom;
+#[cfg(feature = "task")]
+use crate::D4TrackReader;
 
 #[derive(PartialEq)]
 pub enum DataIndexType {
@@ -183,11 +190,13 @@ impl<T: DataSummary> DataIndex<T> {
         Ok(ret)
     }
 
+    #[cfg(feature = "task")]
     pub(crate) fn build<'a>(
         track_root: &'a mut Directory<File>,
         index_root: &'a mut Directory<File>,
         granularity: u32,
     ) -> Result<()> {
+        use data::DataSummaryExt;
         let mut reader = D4TrackReader::create_reader_for_root(track_root.clone())?;
         let index_result = T::run_summary_task(&mut reader, granularity)?;
         let size_of_blob =

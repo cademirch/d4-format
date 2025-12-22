@@ -1,13 +1,13 @@
-#[cfg(all(feature = "mapped_io", not(target_arch = "wasm32")))]
+#[cfg(all(feature = "writer", not(target_arch = "wasm32")))]
 mod merger;
 
 #[cfg(all(feature = "mapped_io", not(target_arch = "wasm32")))]
 mod reader;
 
-#[cfg(all(feature = "mapped_io", not(target_arch = "wasm32")))]
+#[cfg(all(feature = "task", not(target_arch = "wasm32")))]
 mod track;
 
-#[cfg(all(feature = "mapped_io", not(target_arch = "wasm32")))]
+#[cfg(all(feature = "writer", not(target_arch = "wasm32")))]
 mod writer;
 
 use std::{
@@ -21,12 +21,15 @@ use d4_framefile::{Directory, EntryKind};
 #[cfg(all(feature = "mapped_io", not(target_arch = "wasm32")))]
 mod mapped {
     use super::*;
+    #[cfg(feature = "writer")]
     pub use merger::D4FileMerger;
     pub use reader::D4TrackReader;
+    #[cfg(feature = "task")]
     pub use track::{
         D4MatrixReader, DataScanner, MultiTrackPartitionReader, MultiTrackReader,
     };
 
+    #[cfg(feature = "writer")]
     pub use writer::{D4FileBuilder, D4FileWriter, D4FileWriterExt};
 }
 #[cfg(all(feature = "mapped_io", not(target_arch = "wasm32")))]

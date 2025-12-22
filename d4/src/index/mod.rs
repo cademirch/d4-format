@@ -1,6 +1,12 @@
 use std::{
-    fs::{File, OpenOptions},
-    io::{Cursor, Read, Result, Seek},
+    fs::File,
+    io::{Read, Result, Seek},
+};
+
+#[cfg(feature = "task")]
+use std::{
+    fs::OpenOptions,
+    io::Cursor,
     path::Path,
 };
 
@@ -54,6 +60,7 @@ impl<T: Read + Seek> D4IndexCollection<T> {
     }
 }
 
+#[cfg(feature = "task")]
 impl D4IndexCollection<File> {
     pub fn open_for_write<P: AsRef<Path>>(path: P) -> Result<Self> {
         let mut fp = OpenOptions::new()

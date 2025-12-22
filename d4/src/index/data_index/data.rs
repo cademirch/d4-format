@@ -1,5 +1,9 @@
-use std::{io::Result, iter::Once, marker::PhantomData};
+use std::marker::PhantomData;
 
+#[cfg(feature = "task")]
+use std::{io::Result, iter::Once};
+
+#[cfg(feature = "task")]
 use crate::{
     task::{Task, TaskContext, TaskOutputVec, TaskPartition},
     D4TrackReader,
@@ -31,6 +35,10 @@ pub trait DataSummary: Sized + Send + Sync + Clone {
     {
         iter.fold(Self::identity(), |sum, value| sum.combine(value))
     }
+}
+
+#[cfg(feature = "task")]
+pub trait DataSummaryExt: DataSummary {
     fn run_summary_task(reader: &mut D4TrackReader, bin_size: u32) -> Result<TaskOutputVec<Self>> {
         let chrom_list = reader.header().chrom_list().to_owned();
         let task_array: Vec<_> = chrom_list
@@ -56,6 +64,9 @@ pub trait DataSummary: Sized + Send + Sync + Clone {
         Ok(TaskContext::new(reader, task_array)?.run())
     }
 }
+
+#[cfg(feature = "task")]
+impl<T: DataSummary> DataSummaryExt for T {}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Sum(f64);
@@ -99,6 +110,7 @@ impl DataSummary for Sum {
     const INDEX_TYPE_CODE: DataIndexType = DataIndexType::Sum;
 }
 
+#[cfg(feature = "task")]
 pub struct DataSummaryTask<'a, T: DataSummary> {
     chrom: &'a str,
     begin: u32,
@@ -106,11 +118,13 @@ pub struct DataSummaryTask<'a, T: DataSummary> {
     _phantom_data: PhantomData<T>,
 }
 
+#[cfg(feature = "task")]
 pub struct DataSummaryTaskPart<'a, T: DataSummary> {
     sum: T,
     _phantom_data: PhantomData<&'a ()>,
 }
 
+#[cfg(feature = "task")]
 impl<'a, T: DataSummary> TaskPartition<Once<i32>> for DataSummaryTaskPart<'a, T> {
     type ParentType = DataSummaryTask<'a, T>;
 
@@ -138,6 +152,7 @@ impl<'a, T: DataSummary> TaskPartition<Once<i32>> for DataSummaryTaskPart<'a, T>
     }
 }
 
+#[cfg(feature = "task")]
 impl<'a, T: DataSummary> Task<Once<i32>> for DataSummaryTask<'a, T> {
     type Partition = DataSummaryTaskPart<'a, T>;
 

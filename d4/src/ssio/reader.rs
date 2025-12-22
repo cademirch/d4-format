@@ -1,9 +1,14 @@
 use std::{
     io::{Error, ErrorKind, Read, Result, Seek},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
+#[cfg(feature = "http_reader")]
+use std::path::PathBuf;
+
 use d4_framefile::{Blob, Directory, OpenResult};
+
+#[cfg(feature = "http_reader")]
 use reqwest::IntoUrl;
 
 use crate::{
@@ -14,7 +19,9 @@ use crate::{
     Chrom, Header,
 };
 
-use super::{http::HttpReader, table::SecondaryTableRef, view::D4TrackView};
+#[cfg(feature = "http_reader")]
+use super::http::HttpReader;
+use super::{table::SecondaryTableRef, view::D4TrackView};
 
 pub struct D4TrackReader<R: Read + Seek> {
     header: Header,
@@ -28,6 +35,7 @@ pub struct D4MatrixReader<R: Read + Seek> {
     tracks: Vec<D4TrackReader<R>>,
 }
 
+#[cfg(feature = "http_reader")]
 impl D4MatrixReader<HttpReader> {
     pub fn open_tracks<U: IntoUrl + Clone, Pat: FnMut(Option<&Path>) -> bool>(
         url: U,

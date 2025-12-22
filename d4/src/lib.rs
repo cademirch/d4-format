@@ -15,11 +15,17 @@ pub mod index;
 
 pub use chrom::Chrom;
 
+// Reader-only exports (available with mapped_io)
 #[cfg(all(feature = "mapped_io", not(target_arch = "wasm32")))]
-pub use d4file::{
-    find_tracks, find_tracks_in_file, D4FileBuilder, D4FileMerger, D4FileWriter, D4FileWriterExt,
-    D4MatrixReader, D4TrackReader, MultiTrackReader,
-};
+pub use d4file::{find_tracks, find_tracks_in_file, D4TrackReader};
+
+// Task-related exports (available with task feature)
+#[cfg(all(feature = "task", not(target_arch = "wasm32")))]
+pub use d4file::{D4MatrixReader, MultiTrackReader};
+
+// Writer-related exports (available with writer feature)
+#[cfg(all(feature = "writer", not(target_arch = "wasm32")))]
+pub use d4file::{D4FileBuilder, D4FileMerger, D4FileWriter, D4FileWriterExt};
 
 pub use dict::Dictionary;
 

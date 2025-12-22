@@ -35,12 +35,13 @@ version = "0.3"
 optional = true
 
 [features]
-depth_profiler = ["d4-hts", "rayon", "rand"]
-task = ["mapped_io", "rayon"]
+default = ["depth_profiler", "task", "writer", "http_reader"]
+reader_only = ["mapped_io"]
 mapped_io = ["d4-framefile/mapped_io"]
 writer = ["mapped_io"]
+task = ["mapped_io", "rayon"]
+depth_profiler = ["d4-hts", "rayon", "rand"]
 http_reader = ["reqwest"]
-default = ["depth_profiler", "task", "writer", "http_reader"]
 seq-task = []
 
 [dev-dependencies]
