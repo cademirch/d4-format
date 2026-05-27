@@ -506,6 +506,19 @@ mod mapped_io {
                                 .push(RecordBlock::Record(left_rec.limit_left(left).unwrap()));
                         }
                         left_idx += 1;
+                    } else if right_idx == 0 && left_idx < block.count() {
+                        // Partition starts at the block's start and ends inside the
+                        // first record. Neither the partial-left branch above (which
+                        // fires only when block_min != left) nor the whole-records
+                        // branch below (left_idx < right_idx) would push anything,
+                        // and the partition would silently lose every position. Clip
+                        // the first record to `right` and push it; do not advance
+                        // left_idx so the rest of the record is picked up by the
+                        // next partition's partial-left branch.
+                        let left_rec = block.get(0);
+                        cur_part
+                            .blocks
+                            .push(RecordBlock::Record(left_rec.limit_right(right).unwrap()));
                     }
 
                     if left_idx < right_idx {

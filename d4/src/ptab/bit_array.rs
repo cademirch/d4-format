@@ -186,7 +186,11 @@ impl DecoderParameter {
     #[inline(always)]
     fn read_value(&mut self, idx: usize) -> u32 {
         let shift = self.shift[self.rule_base + idx];
-        let data: &u32 = unsafe { &*(*self.pointers.get_unchecked(idx) as *const u32) };
+        // Bit-packed values can land on any byte; the load must not assume
+        // 4-byte alignment (UB in debug builds on aarch64).
+        let data: u32 = unsafe {
+            (*self.pointers.get_unchecked(idx) as *const u32).read_unaligned()
+        };
         data >> shift
     }
 
@@ -305,9 +309,13 @@ impl PrimaryTableCodec<Reader> {
             return DecodeResult::Maybe(self.dict.first_value());
         }
         let actual_offset = offset - self.base_offset;
-        let start: &u32 =
-            unsafe { std::mem::transmute(&self.memory[actual_offset * self.bit_width / 8]) };
-        let value = (*start >> ((actual_offset * self.bit_width) % 8)) & self.mask;
+        // Bit-packed values can land on any byte; the load must not assume
+        // 4-byte alignment (UB in debug builds on aarch64).
+        let start: u32 = unsafe {
+            (&self.memory[actual_offset * self.bit_width / 8] as *const u8 as *const u32)
+                .read_unaligned()
+        };
+        let value = (start >> ((actual_offset * self.bit_width) % 8)) & self.mask;
         if value == (1 << self.bit_width) - 1 {
             return DecodeResult::Maybe(self.dict.decode_value(value).unwrap_or(0));
         }
@@ -329,18 +337,23 @@ impl PrimaryTableCodec<Writer> {
             );
         }
         let actual_offset = offset - self.base_offset;
-        let start: &mut u32 =
-            unsafe { std::mem::transmute(&mut self.memory[actual_offset * self.bit_width / 8]) };
-        match self.dict.encode_value(value) {
+        // Bit-packed values can land on any byte; the load/store must not
+        // assume 4-byte alignment (UB in debug builds on aarch64).
+        let start_ptr =
+            &mut self.memory[actual_offset * self.bit_width / 8] as *mut u8 as *mut u32;
+        let mut start: u32 = unsafe { start_ptr.read_unaligned() };
+        let ret = match self.dict.encode_value(value) {
             EncodeResult::DictionaryIndex(idx) => {
-                *start |= idx << (actual_offset * self.bit_width % 8);
+                start |= idx << (actual_offset * self.bit_width % 8);
                 true
             }
             _ => {
-                *start |= ((1 << self.bit_width) - 1) << (actual_offset * self.bit_width % 8);
+                start |= ((1 << self.bit_width) - 1) << (actual_offset * self.bit_width % 8);
                 false
             }
-        }
+        };
+        unsafe { start_ptr.write_unaligned(start) };
+        ret
     }
 }
 #[cfg(feature = "writer")]
@@ -415,7 +428,9 @@ impl Decoder for PrimaryTableCodec<Reader> {
 
             for idx in 0..count {
                 start = unsafe { start.add(addr_delta[idx % 8]) };
-                let value = unsafe { &*(start as *const u32) };
+                // Bit-packed values can land on any byte; the load must not
+                // assume 4-byte alignment (UB in debug builds on aarch64).
+                let value: u32 = unsafe { (start as *const u32).read_unaligned() };
                 let value = (value >> shift[idx % 8]) & mask;
                 let result = if value == mask {
                     DecodeResult::Maybe(self.dict.decode_value(mask).unwrap_or(0))
