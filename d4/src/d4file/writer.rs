@@ -1,4 +1,5 @@
 use d4_framefile::Directory;
+#[cfg(feature = "depth_profiler")]
 use d4_hts::BamFile;
 use std::fs::{File, OpenOptions};
 use std::io::{Result, Write};
@@ -109,6 +110,7 @@ impl D4FileBuilder {
     }
 
     /// Load the chromosome information from a input BAM file
+    #[cfg(feature = "depth_profiler")]
     pub fn load_chrom_info_from_bam<P: AsRef<Path>>(&mut self, path: P) -> Result<&mut Self> {
         let bam_file = BamFile::open(path)
             .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Bam Read error"))?;

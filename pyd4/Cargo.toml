@@ -4,8 +4,16 @@ version = "0.1.13"
 authors = ["Hao Hou <haohou302@gmail.com>"]
 edition = "2021"
 
+# default-features = false drops d4's `depth_profiler` feature, which is the only
+# thing that pulls in d4-hts (bindgen + a from-source htslib/zlib/bzip2 C build).
+# The Python API never touches BAM/CRAM ingest, so the wheel builds with just a
+# Rust toolchain. BAM support stays available via the opt-in `bam` feature below.
+[dependencies.d4]
+path = "../d4"
+default-features = false
+features = ["writer", "task", "http_reader"]
+
 [dependencies]
-d4 = { path = "../d4" }
 pyo3 = "0.17.0"
 rayon = "1.4.0"
 env_logger = "0.9.0"
@@ -18,3 +26,6 @@ path = "src/lib.rs"
 [features]
 extension-module = ["pyo3/extension-module"]
 default = ["extension-module"]
+# Opt-in: re-enables d4's depth_profiler (htslib/bindgen). Requires libclang and a
+# C toolchain at build time. Not needed by the Python API; off by default.
+bam = ["d4/depth_profiler"]
