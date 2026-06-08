@@ -506,6 +506,11 @@ mod mapped_io {
                                 .push(RecordBlock::Record(left_rec.limit_left(left).unwrap()));
                         }
                         left_idx += 1;
+                    } else if right_idx == 0 && left_idx < block.count() {
+                        let left_rec = block.get(0);
+                        if let Some(record) = left_rec.limit_right(right) {
+                            cur_part.blocks.push(RecordBlock::Record(record));
+                        }
                     }
 
                     if left_idx < right_idx {

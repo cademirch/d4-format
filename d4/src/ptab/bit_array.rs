@@ -182,7 +182,7 @@ impl DecoderParameter {
     #[inline(always)]
     fn read_value(&mut self, idx: usize) -> u32 {
         let shift = self.shift[self.rule_base + idx];
-        let data: &u32 = unsafe { &*(*self.pointers.get_unchecked(idx) as *const u32) };
+        let data = unsafe { (*self.pointers.get_unchecked(idx) as *const u32).read_unaligned() };
         data >> shift
     }
 
@@ -301,9 +301,11 @@ impl PrimaryTableCodec<Reader> {
             return DecodeResult::Maybe(self.dict.first_value());
         }
         let actual_offset = offset - self.base_offset;
-        let start: &u32 =
-            unsafe { std::mem::transmute(&self.memory[actual_offset * self.bit_width / 8]) };
-        let value = (*start >> ((actual_offset * self.bit_width) % 8)) & self.mask;
+        let start = unsafe {
+            (&self.memory[actual_offset * self.bit_width / 8] as *const u8 as *const u32)
+                .read_unaligned()
+        };
+        let value = (start >> ((actual_offset * self.bit_width) % 8)) & self.mask;
         if value == (1 << self.bit_width) - 1 {
             return DecodeResult::Maybe(self.dict.decode_value(value).unwrap_or(0));
         }
@@ -324,18 +326,20 @@ impl PrimaryTableCodec<Writer> {
             );
         }
         let actual_offset = offset - self.base_offset;
-        let start: &mut u32 =
-            unsafe { std::mem::transmute(&mut self.memory[actual_offset * self.bit_width / 8]) };
-        match self.dict.encode_value(value) {
+        let start_ptr = &mut self.memory[actual_offset * self.bit_width / 8] as *mut u8 as *mut u32;
+        let mut start = unsafe { start_ptr.read_unaligned() };
+        let ret = match self.dict.encode_value(value) {
             EncodeResult::DictionaryIndex(idx) => {
-                *start |= idx << (actual_offset * self.bit_width % 8);
+                start |= idx << (actual_offset * self.bit_width % 8);
                 true
             }
             _ => {
-                *start |= ((1 << self.bit_width) - 1) << (actual_offset * self.bit_width % 8);
+                start |= ((1 << self.bit_width) - 1) << (actual_offset * self.bit_width % 8);
                 false
             }
-        }
+        };
+        unsafe { start_ptr.write_unaligned(start) };
+        ret
     }
 }
 impl Encoder for PrimaryTableCodec<Writer> {
@@ -407,7 +411,7 @@ impl Decoder for PrimaryTableCodec<Reader> {
 
             for idx in 0..count {
                 start = unsafe { start.add(addr_delta[idx % 8]) };
-                let value = unsafe { &*(start as *const u32) };
+                let value = unsafe { (start as *const u32).read_unaligned() };
                 let value = (value >> shift[idx % 8]) & mask;
                 let result = if value == mask {
                     DecodeResult::Maybe(self.dict.decode_value(mask).unwrap_or(0))
